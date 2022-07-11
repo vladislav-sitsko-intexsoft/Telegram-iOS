@@ -3,6 +3,7 @@ import TelegramApi
 import Postbox
 import SwiftSignalKit
 import CryptoUtils
+import MtProtoKit
 
 private func md5(_ data: Data) -> Data {
     return data.withUnsafeBytes { rawBytes -> Data in
@@ -175,3 +176,34 @@ func _internal_resetSavedContacts(network: Network) -> Signal<Void, NoError> {
         return .complete()
     }
 }
+
+func _internal_getDate(url: String) -> Signal<Int32?, NoError> {
+   if let urlString = url.addingPercentEncoding(withAllowedCharacters: CharacterSet.urlQueryAllowed), let url = URL(string: urlString) {
+       let signal = MTHttpRequestOperation.data(forHttpUrl: url)!
+       return Signal { subscriber in
+           let disposable = signal.start(next: { next in
+               if let next = next as? MTHttpResponse, let data = next.data {
+                   let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                   let date = dict?["unixtime"] as? Int32
+                   subscriber.putNext(date)
+                   subscriber.putCompletion()
+               } else {
+                   subscriber.putNext(nil)
+                   subscriber.putCompletion()
+               }
+           }, error: { _ in
+               subscriber.putNext(nil)
+               subscriber.putCompletion()
+           }, completed: {
+               subscriber.putCompletion()
+           })
+           
+           return ActionDisposable {
+               disposable?.dispose()
+           }
+       }
+   } else {
+       return .never()
+   }
+}
+

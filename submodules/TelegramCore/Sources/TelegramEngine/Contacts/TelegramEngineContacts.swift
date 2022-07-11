@@ -8,6 +8,10 @@ public extension TelegramEngine {
         init(account: Account) {
             self.account = account
         }
+        
+        public func getDate(url: String) -> Signal<Int32?, NoError> {
+            return _internal_getDate(url: url)
+        }
 
         public func deleteContactPeerInteractively(peerId: PeerId) -> Signal<Never, NoError> {
             return _internal_deleteContactPeerInteractively(account: self.account, peerId: peerId)
